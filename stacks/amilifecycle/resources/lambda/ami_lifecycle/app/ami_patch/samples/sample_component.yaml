@@ -1,0 +1,18 @@
+name: AMiLifecyclePatchAMI
+description: Patch an AMI via AMI Lifecycle Patch event
+schemaVersion: 1.0
+
+phases:
+  - name: build
+    steps:
+      - name: PatchAmi
+        action: ExecuteBash
+        inputs:
+          commands:
+            - sudo yum -y --security update
+            - |
+              sudo yum update -y
+              sudo yum install -y httpd.x86_64
+              sudo echo “Hello world from Ami Lifecycle Patcher” > /var/www/html/index.html
+              sudo systemctl start httpd.service
+              sudo systemctl enable httpd.service

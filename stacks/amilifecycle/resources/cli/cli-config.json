@@ -1,0 +1,9 @@
+{
+    "owner": "ownername",
+    "notifications": [
+        {
+            "method": "EMAIL",
+            "target": "user@domain.com"
+        }
+    ]
+}

@@ -1,0 +1,24 @@
+branch: main
+download-external-modules: true
+evaluate-variables: true
+external-modules-download-path: .external_modules
+framework: cloudformation
+output: cli
+skip-download: true
+quiet: true
+compact: true
+directory:
+  - cdk.out
+skip-check:
+  - CKV_AWS_18  # Ensure the S3 bucket has access logging enabled
+  - CKV_AWS_45  # Ensure no hard-coded secrets exist in lambda environment
+  - CKV_AWS_107 # Ensure IAM policies does not allow credentials exposure
+  - CKV_AWS_108 # Ensure IAM policies does not allow data exfiltration
+  - CKV_AWS_109 # Ensure IAM policies does not allow permissions management without constraints
+  - CKV_AWS_111 # Ensure IAM policies does not allow write access without constraints
+  - CKV_AWS_115 # Ensure that AWS Lambda function is configured for function-level concurrent execution limit
+  - CKV_AWS_116 # Ensure that AWS Lambda function is configured for a Dead Letter Queue(DLQ)
+  - CKV_AWS_117 # Ensure that AWS Lambda function is configured inside a VPC
+  - CKV_AWS_119 # Ensure DynamoDB Tables are encrypted using a KMS Customer Managed CMK
+  - CKV_AWS_158 # Ensure that CloudWatch Log Group is encrypted by KMS  
+  - CKV_AWS_173 # Check encryption settings for Lambda environmental variable

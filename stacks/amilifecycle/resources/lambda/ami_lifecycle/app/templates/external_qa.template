@@ -1,0 +1,108 @@
+Hi QA Team,
+
+A new AMI has been submitted for QA Certification.
+
+QA Certification request details are as follows:
+
+Lifecycle Id: {{vars['properties']['lifecycle_id']}}
+Stack Tag: {{vars['properties']['stack_tag']}}
+AMI Id: {{vars['properties']['ami_id']}}
+AMI Name: {{vars['properties']['ami_name']}}
+AMI Region: {{vars['properties']['ami_region']}}
+AMI Owner: {{vars['properties']['ami_region']}}
+Export Image Id: {{vars['properties']['export_image_id']}}
+Export Bucket: {{vars['properties']['export_bucket']}}
+Export Bucket Prefix: {{vars['properties']['export_bucket_prefix']}}
+
+The exported AMI (in VDMK format), can be downloaded from the URL below with SigV4:
+
+{{vars['properties']['export_presign_s3_url']}}
+
+This URL will be valid for {{vars['properties']['export_link_expiry']}} days(s).
+
+Alternatively, the AMI can be downloaded from the AWS console on: 
+
+{{vars['properties']['export_image_path']}}.
+
+Once the AMI has been downloaded and processed through the certification process, there can be 1 of 2 possible outcomes; 
+
+* CERTIFICATION PASSED
+* CERTIFICATION FAILED
+
+** CERTIFICATION PASSED **
+
+In the event that the AMI passes the QA certification process, the following bash script can be executed to notify the AMI Orchestrator API.
+
+--------------------
+
+#!/bin/bash
+
+# the following properties should be updated by the QA team
+QA_JIRA_REF=""
+QA_OWNER=""
+QA_COMMENT=""
+
+# the values below this line should not be modified
+
+TMP_JSON_REQUEST=/tmp/qa_certify_request.json
+
+cat <<EOF >>${TMP_JSON_REQUEST}
+{
+    "lifecycle_id": {{vars['properties']['lifecycle_id']}}
+    "stack_tag": {{vars['properties']['stack_tag']}},
+    "api_key": {{vars['properties']['qa_certify_api_key']}},
+    "certification_status": "CERTIFIED",
+    "properties": {
+        "qa_jira_ref": ${QA_JIRA_REF},
+        "qa_owner": ${QA_OWNER},
+        "qa_comment": ${QA_COMMENT},
+    }
+}
+EOF
+
+curl -sX POST {{vars['properties']['qa_certify_url']}} \
+-d /tmp/qa_certify_request.json \
+--header "Content-Type: application/json"
+
+rm -fv /tmp/qa_certify_request.json
+
+--------------------
+
+** CERTIFICATION FAILED **
+
+In the event that the AMI fails the QA certification process, the following script can be executed to notify the AMI Orchestrator API.
+
+--------------------
+
+#!/bin/bash
+
+# the following properties should be updated by the QA team
+QA_JIRA_REF=""
+QA_OWNER=""
+QA_COMMENT=""
+
+# the values below this line should not be modified
+
+TMP_JSON_REQUEST=/tmp/qa_certify_request.json
+
+cat <<EOF >>${TMP_JSON_REQUEST}
+{
+    "lifecycle_id": {{vars['properties']['lifecycle_id']}}
+    "stack_tag": {{vars['properties']['stack_tag']}},
+    "api_key": {{vars['properties']['qa_certify_api_key']}},
+    "certification_status": "FAILED",
+    "properties": {
+        "qa_jira_ref": ${QA_JIRA_REF},
+        "qa_owner": ${QA_OWNER},
+        "qa_comment": ${QA_COMMENT},
+    }
+}
+EOF
+
+curl -sX POST {{vars['properties']['qa_certify_url']}} \
+-d /tmp/qa_certify_request.json \
+--header "Content-Type: application/json"
+
+rm -fv /tmp/qa_certify_request.json
+
+--------------------

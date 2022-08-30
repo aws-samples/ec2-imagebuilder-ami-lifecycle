@@ -1,0 +1,13 @@
+Notification of AMI Lifecycle {{vars['operator']}} event for branch: {{vars['stack_tag']}}
+
+You can check the status of AMI Lifecycle progression via the Status API URL linked below:
+
+{{vars['status_url']}}
+
+The lifecyle id for this request is: {{vars['lifecycle_id']}}
+
+Below you can find the key details of the lifecycle process in YAML format:
+
+------------------------------------------------------------
+
+{{vars['formatted_event']}}

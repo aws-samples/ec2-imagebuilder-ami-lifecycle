@@ -1,0 +1,1436 @@
+openapi: "3.0.0"
+info:
+  title: @@API_NAME@@
+  version: "v1.0"
+x-amazon-apigateway-request-validators:
+  all:
+    validateRequestBody: true
+    validateRequestParameters: true
+  params-only:
+    validateRequestBody: false
+    validateRequestParameters: true
+x-amazon-apigateway-request-validator: all
+paths:
+  /ami-creation/lifecycles:
+    post:
+      summary: "Creates a new AMI Creation lifecycle"
+      description: |
+        ## Creates a new AMI Creation lifecycle
+
+        The primary purpose of this endpoint is to build an AMI via the EC2 Image Builder pipeline for a specific feature branch (as indicated by  the `stack_tag` attribute of the request payload).
+        
+        In addition to building the AMI, this endpoint can optionally execute any other desired stage of the AMI lifecycle.
+        
+        Endpoint behaviours:
+        
+        * Configuration over convention - this means that *all* events must be defined. If an event is not desired then it can be marked as `enabled: false`.
+        * The `BUILD_AMI` event is mandatory and must be enabled.
+        * All other events are optional (they must be defined but can be marked as `enabled: false`) .
+        * Events are processed in sequence. An event can only be processed when the preceeding event has completed successfully.
+        * The event lifecycle sequence ordering is:
+          1. BUILD_AMI
+          2. SMOKE_TESTS_AMI_CREATE
+          3. VULNERABILITY_SCANS_AMI_CREATE
+          4. QA_CERTIFICATION_REQUEST
+        * API security keys are required for all operation (defined as attribute `api_key`). The api keys are stored in AWS Secrets Manager and are specific to each API endpoint and deployment.
+        * The AWS Secrets Manager path for the api key for this endpoint is: 
+          * `/ami-lifecycle/api-keys/{FEATURE_BRANCH_TAG}/ami_creation_post_api_key`.
+
+        ### Sample payload
+
+        ```json
+        {
+          "api_key": "1234567qwertyu",
+          "stack_tag": "main",
+          "owner": "OwnerName",
+          "product_name": "My Product Name",
+          "commit_ref": "2AAE6C35C94FCFB415DBE95F408B9CE91EE846ED",
+          "product_ver": "1.0.0",
+          "notifications": [
+            {
+              "method": "EMAIL",
+              "target": "user@domain.com"
+            }
+          ],
+          "events": [
+            {
+              "name": "BUILD_AMI",
+              "enabled": true
+            },
+            {
+              "name": "SMOKE_TESTS_AMI_CREATE",
+              "enabled": false
+            },
+            {
+              "name": "VULNERABILIY_SCANS_AMI_CREATE",
+              "enabled": false
+            },
+            {
+              "name": "QA_CERTIFICATION_REQUEST",
+              "enabled": false
+            }
+          ],
+          "properties": {
+            "GITLAB_PIPELINE_URL": "https://gitlab.com/pipelines/1234567"
+          }
+        }
+        ```
+        
+        ### Sample invocation via CLI
+        
+        ```bash
+        python api-cli.py \
+            --mode "BATCH" \
+            --operation "AMI_CREATE" \
+            --stackTag "main" \
+            --events "AMI_BUILD_ONLY" \
+            --productName: "My Product Name",
+            --productVer "1.0.0" \
+            --owner "OwnerName" \
+            --notifications "EMAIL::user@domain.com" \
+            --properties "GITLAB_PIPELINE_URL::https://gitlab.com/pipelines/1234567"
+        ```
+      operationId: "lifecycleCreate"
+      x-amazon-apigateway-request-validator: all
+      requestBody:
+        description: "A lifecycle create request object."
+        content: 
+          'application/json':
+            schema:
+               $ref: "#/components/schemas/LifecycleCreateRequest"
+        required: true
+      responses:
+        200:
+          description: "OK"
+          content: 
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LifecycleResponse"
+        500:
+          description: "Internal Server Error"
+      x-amazon-apigateway-integration:
+        uri: @@API_LIFECYCLE_CREATE_LAMBDA@@
+        payloadFormatVersion: "2.0"
+        httpMethod: "POST"
+        type: "aws_proxy"
+        connectionType: "INTERNET"
+    put:
+      summary: "Updates an existing AMI Creation lifecycle"
+      description: |
+        ## Updates a new AMI Creation lifecycle
+
+        The purpose of this endpoint is to process additional AMI Lifecycle events for a newly created AMI.
+        
+        Endpoint behaviours:
+        
+        * Configuration over convention - this means that *all* events must be defined. If an event is not desired then it can be marked as `enabled: false`.
+        * Events are optional (they must be defined but can be marked as `enabled: false`) .
+        * Events are processed in sequence. An event can only be processed when the preceeding event has completed successfully.
+        * The event lifecycle sequence ordering is:
+          1. SMOKE_TESTS_AMI_CREATE
+          2. VULNERABILITY_SCANS_AMI_CREATE
+          3. QA_CERTIFICATION_REQUEST
+        * API security keys are required for all operation (defined as attribute `api_key`). The api keys are stored in AWS Secrets Manager and are specific to each API endpoint and deployment.
+        * The AWS Secrets Manager path for the api key for this endpoint is: 
+          * `/ami-lifecycle/api-keys/{FEATURE_BRANCH_TAG}/ami_creation_put_api_key`.
+
+        ### Sample payload
+
+        ```json
+        {
+          "lifecycle_id": "bf2ddb94-fa7e-473e-a2ba-734ccfe1d0d7",
+          "api_key": "1234567qwertyu",
+          "stack_tag": "main",
+          "owner": "OwnerName",
+          "notifications": [
+            {
+              "method": "EMAIL",
+              "target": "user@domain.com"
+            }
+          ],
+          "events": [
+            {
+              "name": "BUILD_AMI",
+              "enabled": false
+            },
+            {
+              "name": "SMOKE_TESTS_AMI_CREATE",
+              "enabled": true
+            },
+            {
+              "name": "VULNERABILIY_SCANS_AMI_CREATE",
+              "enabled": true
+            },
+            {
+              "name": "QA_CERTIFICATION_REQUEST",
+              "enabled": true
+            }
+          ],
+          "properties": {
+            "GITLAB_PIPELINE_URL": "https://gitlab.com/pipelines/1234567"
+          }
+        }
+        ```
+        
+        ### Sample invocation via CLI
+        
+        ```bash
+          python api-cli.py \
+              --mode "BATCH" \
+              --operation "AMI_CREATE_UPDATE" \
+              --stackTag "main" \
+              --lifecycleId "bf2ddb94-fa7e-473e-a2ba-734ccfe1d0d7" \
+              --events "SMOKE_TESTS" \
+              --events "VULNERABILITY_SCANS" \
+              --events "QA_CERTIFICATION_REQUEST" \
+              --owner "OwnerName" \
+              --notifications "EMAIL::user@domain.com"
+        ```
+      operationId: "lifecycleCreateUpdate"
+      x-amazon-apigateway-request-validator: all
+      requestBody:
+        description: "A lifecycle create-update request object."
+        content: 
+          'application/json':
+            schema:
+               $ref: "#/components/schemas/LifecycleCreateUpdateRequest"
+        required: true
+      responses:
+        200:
+          description: "OK"
+          content: 
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LifecycleResponse"
+        500:
+          description: "Internal Server Error"
+      x-amazon-apigateway-integration:
+        uri: @@API_LIFECYCLE_CREATE_UPDATE_LAMBDA@@
+        payloadFormatVersion: "2.0"
+        httpMethod: "POST"
+        type: "aws_proxy"
+        connectionType: "INTERNET"
+  /ami-creation/lifecycles/status:
+    get:
+      summary: "Get lifecycle statuses"
+      description: |
+        ## Get lifecycle statuses
+
+        The purpose of this endpoint is retrieve *all* of the AMI lifecycles managed by this instance of the AMI Orchestrator.
+        
+        ### Sample invocation via CLI
+        
+        ```bash
+        python api-cli.py \
+            --mode "BATCH" \
+            --operation "AMI_GET_STATUS_BY_STACK_TAG" \
+            --stackTag "main" \
+            --owner "OwnerName" \
+            --notifications "EMAIL::user@domain.com"
+        ```
+
+        The CLI returns a link for a GET method which can be followed to obtain the AMI lifecycle statuses.
+      operationId: "getLifecycleStatusWithStackTag"
+      x-amazon-apigateway-request-validator: all
+      parameters:
+      - in: query
+        name: api_key
+        schema:
+          type: string
+        description: |
+            API security key which is stored in AWS Secrets Manager and is specific to each API endpoint and deployment.
+      - in: query
+        name: stack_tag
+        schema:
+          type: string
+        description: "The feature branch stack_tag parameter"
+      responses:
+        200:
+          description: "OK"
+          content: 
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LifecycleStatus"
+        500:
+          description: "Internal Server Error"
+      x-amazon-apigateway-integration:
+        uri: @@API_GET_STATUS_BY_STACKTAG_LAMBDA@@
+        payloadFormatVersion: "2.0"
+        httpMethod: "POST"
+        type: "aws_proxy"
+        connectionType: "INTERNET"
+  /ami-creation/lifecycles/{lifecycle-id}/status:
+    get:
+      summary: "Get lifecycle status by lifecycle Id"
+      description: |
+        ## Get lifecycle status by lifecycle Id
+
+        The purpose of this endpoint is retrieve the lifecycle status of a specific AMI by its lifecycle id.
+        
+        ### Sample invocation via CLI
+        
+        ```bash
+        python api-cli.py \
+            --mode "BATCH" \
+            --operation "AMI_GET_STATUS_BY_LIFECYCLE_ID" \
+            --stackTag "main" \
+            --lifecycleId "bf2ddb94-fa7e-473e-a2ba-734ccfe1d0d7" \
+            --owner "OwnerName" \
+            --notifications "EMAIL::user@domain.com"
+        ```
+
+        The CLI returns a link for a GET method which can be followed to obtain the AMI lifecycle status.
+      operationId: "getLifecycleStatusByLifecycleId"
+      x-amazon-apigateway-request-validator: all
+      parameters:
+      - name: lifecycle-id
+        in: path
+        schema:
+          type: string
+        description: |
+            The unique identifier used to trace the AMI lifecycle events in subsequent API calls.
+        required: true
+      - in: query
+        name: api_key
+        description: |
+            API security key which is stored in AWS Secrets Manager and is specific to each API endpoint and deployment.
+        schema:
+          type: string
+      responses:
+        200:
+          description: "OK"
+          content: 
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LifecycleStatus"
+        500:
+          description: "Internal Server Error"
+      x-amazon-apigateway-integration:
+        uri: @@API_GET_STATUS_BY_LIFECYCLEID_LAMBDA@@
+        payloadFormatVersion: "2.0"
+        httpMethod: "POST"
+        type: "aws_proxy"
+        connectionType: "INTERNET"
+  /ami-creation/lifecycles/{lifecycle-id}/certify:
+    post:
+      summary: "QA certification for a new AMI"
+      description: |
+        ## Certifies a new AMI for use in production
+
+        The purpose of this endpoint is to certify a new AMI for use in production. This endpoint is intended to be used by an external, on-premises QA team. As part of a `QA_CERTIFICATION_REQUEST`, the AMI is exported to a VMDK format and provided to the external, on-premises QA team via S3. Once reviewed, the QA team will use this endpoint to indicated the certification status of the AMI; *CERTIFIED* or *FAILED*.
+
+        ### Sample payload
+
+        ```json
+        {
+          "api_key": "1234567qwertyu",
+          "stack_tag": "main",
+          "certification_status": "CERTIFIED",
+          "lifecycle_id": "bf2ddb94-fa7e-473e-a2ba-734ccfe1d0d7",
+          "properties": {
+            "qa_jira_ref": "https://jira.com/browse/12345",
+            "qa_owner": "CLI Utility",
+            "qa_comment": "QA Certification via the CLI Utility"
+          }
+        }
+        ```
+        
+        ### Sample invocation via CLI
+        
+        ```bash
+        python api-cli.py \
+            --mode "BATCH" \
+            --operation "AMI_QA_CERTIFICATION" \
+            --stackTag "main" \
+            --lifecycleId "bf2ddb94-fa7e-473e-a2ba-734ccfe1d0d7" \
+            --owner "OwnerName" \
+            --notifications "EMAIL::user@domain.com" \
+            --certificationStatus "CERTIFIED"
+        ```
+      operationId: "lifecycleQACertification"
+      x-amazon-apigateway-request-validator: all
+      parameters:
+      - name: lifecycle-id
+        in: path
+        schema:
+          type: string
+        description: |
+            The unique identifier used to trace the AMI lifecycle events in subsequent API calls.
+        required: true
+      requestBody:
+        description: "A lifecycle qa certification request object."
+        content: 
+          'application/json':
+            schema:
+               $ref: "#/components/schemas/LifecycleQACertificationRequest"
+        required: true
+      responses:
+        200:
+          description: "OK"
+          content: 
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LifecycleResponse"
+        500:
+          description: "Internal Server Error"
+      x-amazon-apigateway-integration:
+        uri: @@API_LIFECYCLE_QA_CERTIFICATION_LAMBDA@@
+        payloadFormatVersion: "2.0"
+        httpMethod: "POST"
+        type: "aws_proxy"
+        connectionType: "INTERNET"
+  /ami-creation/lifecycles/{lifecycle-id}/approve:
+    post:
+      summary: "Mark for production approval for a new AMI"
+      description: |
+        ## Approves a new AMI for use in production
+
+        The purpose of this endpoint is to approve a new AMI for use in production. This endpoint is intended to be invoked by an external process or person such as CI Pipeline or a designated Product Approver.
+
+        This is the final step in an AMI creation lifecycle. Once this step has been completed with the *APPROVED* status, an AMI is considered ready for use with production EC2 instances.
+
+        ### Sample payload
+
+        ```json
+        {
+          "api_key": "1234567qwertyu",
+          "stack_tag": "main",
+          "approval_status": "APPROVED",
+          "lifecycle_id": "bf2ddb94-fa7e-473e-a2ba-734ccfe1d0d7",
+          "properties": {
+            "gitlab_pipeline_url": "https://gitlab.com/pipelines/1234567"
+          }
+        }
+        ```
+        
+        ### Sample invocation via CLI
+        
+        ```bash
+        python api-cli.py \
+            --mode "BATCH" \
+            --operation "AMI_APPROVAL_CREATE" \
+            --stackTag "main" \
+            --lifecycleId "bf2ddb94-fa7e-473e-a2ba-734ccfe1d0d7" \
+            --owner "OwnerName" \
+            --notifications "EMAIL::user@domain.com" \
+            --approvalStatusAmiCreation "APPROVED"
+        ```
+      operationId: "lifecycleCreationMarkForProductionApproval"
+      x-amazon-apigateway-request-validator: all
+      parameters:
+      - name: lifecycle-id
+        in: path
+        schema:
+          type: string
+        description: |
+            The unique identifier used to trace the AMI lifecycle events in subsequent API calls.
+        required: true
+      requestBody:
+        description: "A lifecycle mark for production approval request object."
+        content: 
+          'application/json':
+            schema:
+               $ref: "#/components/schemas/LifecycleMarkForProductionApprovalRequest"
+        required: true
+      responses:
+        200:
+          description: "OK"
+          content: 
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LifecycleResponse"
+        500:
+          description: "Internal Server Error"
+      x-amazon-apigateway-integration:
+        uri: @@API_CREATION_MARK_FOR_PRODUCTION_APPROVAL_LAMBDA@@
+        payloadFormatVersion: "2.0"
+        httpMethod: "POST"
+        type: "aws_proxy"
+        connectionType: "INTERNET"
+  /ami-creation/lifecycles/{lifecycle-id}/timeline:
+    get:
+      summary: "Get lifecycle timeline by lifecycle Id"
+      description: |
+        ## Gets the timeine visualization for an AMI creation lifecycle
+
+        The purpose of this endpoint is retrieve a timeline visualization fo an AMI creation lifecycle by its lifecycle id.
+        
+        ### Sample invocation via CLI
+        
+        ```bash
+        python api-cli.py \
+            --mode "BATCH" \
+            --operation "AMI_TIMELINE_PATCH" \
+            --stackTag "main" \
+            --lifecycleId "df26302b-d54e-4575-81c7-ffd6ddfa2cb7" \
+            --owner "OwnerName" \
+            --notifications "EMAIL::user@domain.com"
+        ```
+
+        The CLI returns a link for a GET method which can be followed to obtain the AMI lifecycle timeline visualization.
+      operationId: "getLifecycleTimelineByLifecycleId"
+      x-amazon-apigateway-request-validator: all
+      parameters:
+      - name: lifecycle-id
+        in: path
+        schema:
+          type: string
+        description: |
+            The unique identifier used to trace the AMI lifecycle events in subsequent API calls.
+        required: true
+      - in: query
+        name: api_key
+        description: |
+            API security key which is stored in AWS Secrets Manager and is specific to each API endpoint and deployment.
+        schema:
+          type: string
+      responses:
+        200:
+          description: "OK"
+          content: 
+            text/html:
+              schema:
+                type: string
+        500:
+          description: "Internal Server Error"
+      x-amazon-apigateway-integration:
+        uri: @@API_GET_TIMELINE_BY_LIFECYCLEID_LAMBDA@@
+        payloadFormatVersion: "2.0"
+        httpMethod: "POST"
+        type: "aws_proxy"  
+  /ami-patch/lifecycles:
+    post:
+      summary: "Patches an exsiting AMI lifecycle"
+      description: |
+        ## Patches an approved AMI
+
+        The primary purpose of this endpoint is to patch a previously approved AMI.
+        
+        In addition to patching the AMI, this endpoint can optionally execute any other desired stage of the AMI Patch lifecycle.
+        
+        Endpoint behaviours:
+        
+        * Configuration over convention - this means that *all* events must be defined. If an event is not desired then it can be marked as `enabled: false`.
+        * The `PATCH_AMI` event is mandatory and must be enabled.
+        * All other events are optional (they must be defined but can be marked as `enabled: false`) .
+        * Events are processed in sequence. An event can only be processed when the preceeding event has completed successfully.
+        * The event lifecycle sequence ordering is:
+          1. PATCH_AMI
+          2. SMOKE_TESTS_AMI_PATCH
+          3. VULNERABILITY_SCANS_AMI_PATCH
+        * API security keys are required for all operation (defined as attribute `api_key`). The api keys are stored in AWS Secrets Manager and are specific to each API endpoint and deployment.
+        * The AWS Secrets Manager path for the api key for this endpoint is: 
+          * `/ami-lifecycle/api-keys/{FEATURE_BRANCH_TAG}/ami_patch_post_api_key`.
+        * The `PATCH_AMI` event requires the definition of the following payload attributes:
+          * `patch_component_url`: Absolute path to a YAML file that conforms to the [EC2 Image Builder component format](https://docs.aws.amazon.com/imagebuilder/latest/userguide/create-components-cli.html). See cdk/l3_constructs/ami/amiLifecycle/resources/lambda/ami_lifeycle/app/ami_patch/samples/sample_component.yaml for a simple example of a valid YAML component.
+          * `patch_change_description`: Textual description of the contents and reason for the patch.
+          * `semver_bump_type`: Indicates the *MINOR* or *PATCH* bump type that a patch should increment the AMI semantic version.
+
+        ### Sample payload
+
+        ```json
+        {
+          "lifecycle_id": "df26302b-d54e-4575-81c7-ffd6ddfa2cb7",
+          "api_key": "1234567qwertyu",
+          "stack_tag": "main",
+          "owner": "OwnerName",
+          "commit_ref": "2AAE6C35C94FCFB415DBE95F408B9CE91EE846ED",
+          "notifications": [
+            {
+              "method": "EMAIL",
+              "target": "user@domain.com"
+            }
+          ],
+          "events": [
+            {
+              "name": "PATCH_AMI",
+              "enabled": true
+            },
+            {
+              "name": "SMOKE_TESTS_AMI_PATCH",
+              "enabled": false
+            },
+            {
+              "name": "VULNERABILITY_SCANS_AMI_PATCH",
+              "enabled": false
+            }
+          ],
+          "properties": {
+            "GITLAB_PIPELINE_URL": "https://gitlab.com/pipelines/1234567",
+            "patch_component_url": "s3://bucket-name/lifecycle-id/sample_component.yaml",
+            "patch_change_description": "Adds Apache Httpd. Sets Apache Httpd to start on boot. Adds custom index page"
+            "semver_bump_type": "MINOR"
+          }
+        }
+        ```
+        
+        ### Sample invocation via CLI
+        
+        ```bash
+        python api-cli.py \
+            --mode "BATCH" \
+            --operation "AMI_PATCH" \
+            --stackTag "main" \
+            --lifecycleId "bf2ddb94-fa7e-473e-a2ba-734ccfe1d0d7" \
+            --events "AMI_PATCH_ONLY" \
+            --owner "OwnerName" \
+            --notifications "EMAIL::user@domain.com" \
+            --patchComponent "/path/to/sample_component.yaml" \
+            --patchChangeDescription "Adds Apache Httpd. Sets Apache Httpd to start on boot. Adds custom index page."
+        ```
+      operationId: "lifecycleCreatePatch"
+      x-amazon-apigateway-request-validator: all
+      requestBody:
+        description: "A lifecycle create patch request object."
+        content: 
+          'application/json':
+            schema:
+               $ref: "#/components/schemas/LifecycleCreatePatchRequest"
+        required: true
+      responses:
+        200:
+          description: "OK"
+          content: 
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LifecycleResponse"
+        500:
+          description: "Internal Server Error"
+      x-amazon-apigateway-integration:
+        uri: @@API_LIFECYCLE_PATCH_LAMBDA@@
+        payloadFormatVersion: "2.0"
+        httpMethod: "POST"
+        type: "aws_proxy"
+        connectionType: "INTERNET"
+    put:
+      summary: "Updates an existing AMI Patch lifecycle"
+      description: |
+        ## Continues patching operations on a patched AMI
+
+        This endpoint allows for additional operations to be performed on a patched AMI.
+        
+        Endpoint behaviours:
+        
+        * Configuration over convention - this means that *all* events must be defined. If an event is not desired then it can be marked as `enabled: false`.
+        * The `PATCH_AMI` event must be disabled as the AMI should already have been patched before using this endpoint.
+        * All other events are optional (they must be defined but can be marked as `enabled: false`) .
+        * Events are processed in sequence. An event can only be processed when the preceeding event has completed successfully.
+        * The event lifecycle sequence ordering is:
+          1. SMOKE_TESTS_AMI_PATCH
+          2. VULNERABILITY_SCANS_AMI_PATCH
+        * API security keys are required for all operation (defined as attribute `api_key`). The api keys are stored in AWS Secrets Manager and are specific to each API endpoint and deployment.
+        * The AWS Secrets Manager path for the api key for this endpoint is: 
+          * `/ami-lifecycle/api-keys/{FEATURE_BRANCH_TAG}/ami_patch_put_api_key`.
+
+        ### Sample payload
+
+        ```json
+        {
+          "lifecycle_id": "bf2ddb94-fa7e-473e-a2ba-734ccfe1d0d7",
+          "api_key": "1234567qwertyu",
+          "stack_tag": "main",
+          "owner": "OwnerName",
+          "commit_ref": "2AAE6C35C94FCFB415DBE95F408B9CE91EE846ED",
+          "notifications": [
+            {
+              "method": "EMAIL",
+              "target": "user@domain.com"
+            }
+          ],
+          "events": [
+            {
+              "name": "PATCH_AMI",
+              "enabled": false
+            },
+            {
+              "name": "SMOKE_TESTS_AMI_PATCH",
+              "enabled": true
+            },
+            {
+              "name": "VULNERABILITY_SCANS_AMI_PATCH",
+              "enabled": true
+            }
+          ],
+          "properties": {
+            "GITLAB_PIPELINE_URL": "https://gitlab.com/pipelines/1234567"
+          }
+        }
+        ```
+        
+        ### Sample invocation via CLI
+        
+        ```bash
+        python api-cli.py \
+            --mode "BATCH" \
+            --operation "AMI_PATCH_UPDATE" \
+            --stackTag "main" \
+            --lifecycleId "bf2ddb94-fa7e-473e-a2ba-734ccfe1d0d7" \
+            --events "SMOKE_TESTS" \
+            --events "VULNERABILITY_SCANS" \
+            --owner "OwnerName" \
+            --notifications "EMAIL::user@domain.com"
+        ```
+      operationId: "lifecycleCreateUpdatePatch"
+      x-amazon-apigateway-request-validator: all
+      requestBody:
+        description: "A lifecycle patch-update request object."
+        content: 
+          'application/json':
+            schema:
+               $ref: "#/components/schemas/LifecyclePatchUpdateRequest"
+        required: true
+      responses:
+        200:
+          description: "OK"
+          content: 
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LifecycleResponse"
+        500:
+          description: "Internal Server Error"
+      x-amazon-apigateway-integration:
+        uri: @@API_LIFECYCLE_PATCH_UPDATE_LAMBDA@@
+        payloadFormatVersion: "2.0"
+        httpMethod: "POST"
+        type: "aws_proxy"
+        connectionType: "INTERNET"
+  /ami-patch/lifecycles/status:
+    get:
+      summary: "Get lifecycle statuses"
+      description: |
+        ## Get lifecycle statuses
+
+        The purpose of this endpoint is retrieve *all* of the AMI lifecycles.
+        
+        ### Sample invocation via CLI
+        
+        ```bash
+        python api-cli.py \
+            --mode "BATCH" \
+            --operation "AMI_GET_STATUSES" \
+            --stackTag "main" \
+            --owner "OwnerName" \
+            --notifications "EMAIL::user@domain.com"
+        ```
+
+        The CLI returns a link for a GET method which can be followed to obtain the AMI lifecycle statuses.
+      operationId: "getLifecycleStatusWithStackTagPatch"
+      x-amazon-apigateway-request-validator: all
+      parameters:
+      - in: query
+        name: api_key
+        schema:
+          type: string
+        description: |
+            API security key which is stored in AWS Secrets Manager and is specific to each API endpoint and deployment.
+      - in: query
+        name: stack_tag
+        schema:
+          type: string
+        description: "The optional feature branch stack_tag parameter to filter results by stack_tag"
+      responses:
+        200:
+          description: "OK"
+          content: 
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LifecycleStatus"
+        500:
+          description: "Internal Server Error"
+      x-amazon-apigateway-integration:
+        uri: @@API_GET_STATUS_BY_STACKTAG_LAMBDA@@
+        payloadFormatVersion: "2.0"
+        httpMethod: "POST"
+        type: "aws_proxy"
+        connectionType: "INTERNET"
+  /ami-patch/lifecycles/{lifecycle-id}/status:
+    get:
+      summary: "Get lifecycle status by lifecycle Id"
+      description: |
+        ## Get lifecycle status by lifecycle Id
+
+        The purpose of this endpoint is retrieve the lifecycle status of a specific AMI by its lifecycle id.
+        
+        ### Sample invocation via CLI
+        
+        ```bash
+        python api-cli.py \
+            --mode "BATCH" \
+            --operation "AMI_GET_STATUS_BY_LIFECYCLE_ID" \
+            --stackTag "main" \
+            --lifecycleId "bf2ddb94-fa7e-473e-a2ba-734ccfe1d0d7" \
+            --owner "OwnerName" \
+            --notifications "EMAIL::user@domain.com"
+        ```
+
+        The CLI returns a link for a GET method which can be followed to obtain the AMI lifecycle status.
+      operationId: "getLifecycleStatusByLifecycleIdPatch"
+      x-amazon-apigateway-request-validator: all
+      parameters:
+      - name: lifecycle-id
+        in: path
+        schema:
+          type: string
+        description: |
+            The unique identifier used to trace the AMI lifecycle events in subsequent API calls.
+        required: true
+      - in: query
+        name: api_key
+        description: |
+            API security key which is stored in AWS Secrets Manager and is specific to each API endpoint and deployment.
+        schema:
+          type: string
+      responses:
+        200:
+          description: "OK"
+          content: 
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LifecycleStatus"
+        500:
+          description: "Internal Server Error"
+      x-amazon-apigateway-integration:
+        uri: @@API_GET_STATUS_BY_LIFECYCLEID_LAMBDA@@
+        payloadFormatVersion: "2.0"
+        httpMethod: "POST"
+        type: "aws_proxy"
+        connectionType: "INTERNET"
+  /ami-patch/lifecycles/{lifecycle-id}/timeline:
+    get:
+      summary: "Get patch lifecycle timeline by lifecycle Id"
+      description: |
+        ## Gets the timeine visualization for an AMI patch lifecycle
+
+        The purpose of this endpoint is retrieve a timeline visualization fo an AMI patch lifecycle by its lifecycle id.
+        
+        ### Sample invocation via CLI
+        
+        ```bash
+        python api-cli.py \
+            --mode "BATCH" \
+            --operation "AMI_TIMELINE_PATCH" \
+            --stackTag "main" \
+            --lifecycleId "df26302b-d54e-4575-81c7-ffd6ddfa2cb7" \
+            --owner "OwnerName" \
+            --notifications "EMAIL::user@domain.com"
+        ```
+
+        The CLI returns a link for a GET method which can be followed to obtain the AMI lifecycle timeline visualization.
+      operationId: "getLifecycleTimelineByLifecycleIdPatch"
+      x-amazon-apigateway-request-validator: all
+      parameters:
+      - name: lifecycle-id
+        in: path
+        schema:
+          type: string
+        description: |
+            The unique identifier used to trace the AMI lifecycle events in subsequent API calls.
+        required: true
+      - in: query
+        name: api_key
+        description: |
+            API security key which is stored in AWS Secrets Manager and is specific to each API endpoint and deployment.
+        schema:
+          type: string
+      responses:
+        200:
+          description: "OK"
+          content: 
+            text/html:
+              schema:
+                type: string
+        500:
+          description: "Internal Server Error"
+      x-amazon-apigateway-integration:
+        uri: @@API_GET_PATCH_TIMELINE_BY_LIFECYCLEID_LAMBDA@@
+        payloadFormatVersion: "2.0"
+        httpMethod: "POST"
+        type: "aws_proxy"
+        connectionType: "INTERNET"
+  /ami-patch/lifecycles/{lifecycle-id}/approve:
+    post:
+      summary: "Mark for production approval for a patched AMI"
+      description: |
+        ## Approves a patched AMI for use in production
+
+        The purpose of this endpoint is to approve a patched AMI for use in production. This endpoint is intended to be invoked by an external process or person such as Gitlab or a designated Product Approver.
+
+        This is the final step in an AMI patch lifecycle. Once this step has been completed with the *APPROVED* status, an AMI is considered ready for use with production EC2 instances.
+
+        ### Sample payload
+
+        ```json
+        {
+          "api_key": "1234567qwertyu",
+          "stack_tag": "main",
+          "approval_status": "APPROVED",
+          "lifecycle_id": "bf2ddb94-fa7e-473e-a2ba-734ccfe1d0d7",
+          "properties": {
+            "gitlab_pipeline_url": "https://gitlab.com/pipelines/1234567"
+          }
+        }
+        ```
+        
+        ### Sample invocation via CLI
+        
+        ```bash
+        python api-cli.py \
+            --mode "BATCH" \
+            --operation "AMI_APPROVAL_PATCH" \
+            --stackTag "main" \
+            --lifecycleId "bf2ddb94-fa7e-473e-a2ba-734ccfe1d0d7" \
+            --owner "OwnerName" \
+            --notifications "EMAIL::user@domain.com" \
+            --approvalStatusAmiPatch "APPROVED"
+        ```
+      operationId: "lifecyclePatchMarkForProductionApproval"
+      x-amazon-apigateway-request-validator: all
+      parameters:
+      - name: lifecycle-id
+        in: path
+        schema:
+          type: string
+        description: |
+            The unique identifier used to trace the AMI lifecycle events in subsequent API calls.
+        required: true
+      requestBody:
+        description: "A lifecycle mark for production approval request object."
+        content: 
+          'application/json':
+            schema:
+               $ref: "#/components/schemas/LifecycleMarkForProductionApprovalRequest"
+        required: true
+      responses:
+        200:
+          description: "OK"
+          content: 
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LifecycleResponse"
+        500:
+          description: "Internal Server Error"
+      x-amazon-apigateway-integration:
+        uri: @@API_PATCH_MARK_FOR_PRODUCTION_APPROVAL_LAMBDA@@
+        payloadFormatVersion: "2.0"
+        httpMethod: "POST"
+        type: "aws_proxy"
+        connectionType: "INTERNET"
+components:
+  schemas:
+    LifecycleCreateRequest:
+      type: object
+      properties:
+        api_key:
+          type: string
+          description: |
+            API security key which is stored in AWS Secrets Manager and is specific to each API endpoint and deployment.
+        stack_tag:
+          type: string
+          description: |
+            The stack tag of the feature branch.
+        product_ver:
+          type: string
+          description: |
+            Arbitrary identifier that can be used to associate a Product Version with an AMI.
+        product_name:
+          type: string
+          description: |
+            Arbitrary identifier that can be used to associate a Product Name with an AMI.
+        commit_ref:
+          type: string
+          description: |
+            The Git SHA1 hash representing the specific commit from which the AMI is created.
+        owner:
+          type: string
+          description: |
+            The username or identifier of the person or process invoking the API.
+        notifications:
+          type: array
+          description: |
+            Defines the notification channels used by the Orchestrator API to communicate lifecycle event statuses. The backing resource is AWS SNS so the available notification channels are those supported by SNS. Currently `email`and `HTTP` are implemented. Multiple email subscribers can be defined using a comma separated notation.
+          items:
+            $ref: "#/components/schemas/LifecycleNotification"
+        events:
+          type: array
+          description: |
+            The lifecycle events that can be defined for an AMI. The lifecycle events and their sequence ordering are:
+            1. BUILD_AMI
+            2. SMOKE_TESTS_AMI_CREATE
+            3. VULNERABILITY_SCANS
+            4. INITIATE_CERTIFICATION
+            5. MARK_FOR_PRODUCTION
+          items:
+            $ref: "#/components/schemas/LifecycleEventInput"
+        properties:
+          type: array
+          description: |
+            Key value objects representing request properties.
+          items:
+            $ref: "#/components/schemas/KeyValueObj"
+    LifecycleCreateUpdateRequest:
+      type: object
+      properties:
+        api_key:
+          type: string
+          description: |
+            API security key which is stored in AWS Secrets Manager and is specific to each API endpoint and deployment.
+        lifecycle_id:
+          type: string
+          description: |
+              The unique identifier used to trace the AMI lifecycle events in subsequent API calls.
+        stack_tag:
+          type: string
+          description: |
+            The stack tag of the feature branch.
+        owner:
+          type: string
+          description: |
+            The username or identifier of the person or process invoking the API.
+        notifications:
+          type: array
+          description: |
+            Defines the notification channels used by the Orchestrator API to communicate lifecycle event statuses. The backing resource is AWS SNS so the available notification channels are those supported by SNS. Currently `email`and `HTTP` are implemented. Multiple email subscribers can be defined using a comma separated notation.
+          items:
+            $ref: "#/components/schemas/LifecycleNotification"
+        events:
+          type: array
+          description: |
+            The lifecycle events that can be defined for an AMI. The lifecycle events and their sequence ordering are:
+            1. BUILD_AMI -> this must be disabled during an update.
+            2. SMOKE_TESTS_AMI_CREATE
+            3. VULNERABILITY_SCANS
+            4. INITIATE_CERTIFICATION
+            5. MARK_FOR_PRODUCTION
+          items:
+            $ref: "#/components/schemas/LifecycleEventInput"
+        properties:
+          type: array
+          description: |
+            Key value objects representing request properties.
+          items:
+            $ref: "#/components/schemas/KeyValueObj"
+    LifecycleNotification:
+      type: object
+      description: |
+        Describes the notification channels used by the Orchestrator API to communicate lifecycle event statuses. The backing resource is AWS SNS so the available notification channels are those supported by SNS. Currently `email`and `HTTP` are implemented. Multiple email subscribers can be defined using a comma separated notation.
+      properties:
+        method:
+          type: string
+          enum: [ "EMAIL", "HTTP"]
+        target:
+          type: string
+    LifecycleEventInput:
+      type: object
+      description: |
+        The lifecycle events that can be defined for an AMI. The lifecycle events and their sequence ordering are:
+        1. BUILD_AMI
+        2. SMOKE_TESTS_AMI_CREATE
+        3. VULNERABILITY_SCANS
+        4. INITIATE_CERTIFICATION
+        5. MARK_FOR_PRODUCTION
+      properties:
+        id:
+          type: string
+          description: |
+            The name of a lifecycle event that can be defined for an AMI. The lifecycle events are:
+            
+            * BUILD_AMI
+            * SMOKE_TESTS_AMI_CREATE
+            * VULNERABILITY_SCANS
+            * INITIATE_CERTIFICATION
+            * MARK_FOR_PRODUCTION
+        enabled:
+          type: boolean
+          description: |
+            Indicates if the lifecycle event should be processed.
+    LifecycleEventInputPatch:
+      type: object
+      description: |
+        The lifecycle events that can be defined for an AMI. The lifecycle events and their sequence ordering are:
+        1. PATCH_AMI
+        2. SMOKE_TESTS_AMI_CREATE
+        3. VULNERABILITY_SCANS
+      properties:
+        id:
+          type: string
+          description: |
+            The name of a lifecycle event that can be defined for an AMI. The lifecycle events are:
+            
+            * PATCH_AMI
+            * SMOKE_TESTS_AMI_CREATE
+            * VULNERABILITY_SCANS
+        enabled:
+          type: boolean
+          description: |
+            Indicates if the lifecycle event should be processed.
+    LifecycleResponse:
+      type: object
+      properties:
+        lifecycle_id:
+          type: string
+          description: |
+            The unique identifier used to trace the AMI lifecycle events in subsequent API calls.
+        owner:
+          type: string
+          description: |
+            The username or identifier of the person or process invoking the API.
+        creation_date:
+          type: string
+          description: |
+            A date-time string indicating the creation date of the response.
+          format: "date-time"
+        notification_channels:
+          type: array
+          description: |
+            Describes the notification channels used by the Orchestrator API to communicate lifecycle event statuses. The backing resource is AWS SNS so the available notification channels are those supported by SNS. Currently `email`and `HTTP` are implemented. Multiple email subscribers can be defined using a comma separated notation.
+          items:
+            $ref: "#/components/schemas/LifecycleNotification"
+    LifecycleResultOutput:
+      type: object
+      description: |
+        The result of an AMI lifecycle operation.
+      properties:
+        events:
+          type: array
+          items:
+            $ref: "#/components/schemas/LifecycleEventResult"
+    LifecycleEventResult:
+      type: object
+      properties:
+        name:
+          type: string
+          description: |
+            The name of the AMI lifecycle event. 
+            
+            For an AMI creation operation the possible events are:
+            * BUILD_AMI
+            * SMOKE_TESTS_AMI_CREATE
+            * VULNERABILITY_SCANS_AMI_CREATE
+            * QA_CERTIFICATION_REQUEST
+
+            For an AMI patch operation the possible events are:
+            * PATCH_AMI
+            * SMOKE_TESTS_AMI_PATCH
+            * VULNERABILITY_SCANS_AMI_PATCH
+        status_date:
+          type: string
+          format: "date-time"
+          description: |
+            A date-time string representing the status date.
+        status:
+          type: string
+          description: |
+            The status of the event result. This can be one of:
+            * COMPLETED
+            * ERROR
+            * IN_PROGRESS
+          enum: [ "IN_PROGRESS", "COMPLETED", "ERROR" ]
+        properties:
+          type: array
+          description: |
+            Key value objects representing event properties.
+          items:
+            $ref: "#/components/schemas/KeyValueObj"
+    KeyValueObj:
+      type: object
+      properties:
+        key:
+          type: string
+          description: |
+            Item key.
+        value:
+          type: string
+          description: |
+            Item value.
+    LifecycleStatus:
+      type: object
+      properties:
+        lifecycle_id:
+          type: string
+          description: |
+            The unique identifier used to trace the AMI lifecycle events in subsequent API calls.
+        stack_tag:
+          type: string
+          description: |
+            The stack tag of the feature branch.
+        owner:
+          type: string
+          description: |
+            The username or identifier of the person or process invoking the API.
+        notification_channels:
+          type: array
+          description: |
+            Describes the notification channels used by the Orchestrator API to communicate lifecycle event statuses. The backing resource is AWS SNS so the available notification channels are those supported by SNS. Currently `email`and `HTTP` are implemented. Multiple email subscribers can be defined using a comma separated notation.
+          items:
+            $ref: "#/components/schemas/LifecycleNotification"
+        properties:
+          type: array
+          description: |
+            Key value objects representing request properties.
+          items:
+            $ref: "#/components/schemas/KeyValueObj"
+        inputs_ami_creation:
+          type: object
+          description: |
+            Describes the AMI lifecycle event operations that were to be performed on the current execution of the AMI lifecycle.
+          properties:
+            events:
+              type: array
+              description: |
+                The name of the lifecycle event that is in progress. 
+                
+                For an AMI creation operation the possible events are:
+                * BUILD_AMI
+                * SMOKE_TESTS_AMI_CREATE_AMI_CREATE
+                * VULNERABILITY_SCANS_AMI_CREATE
+                * QA_CERTIFICATION_REQUEST
+              items:
+                $ref: "#/components/schemas/LifecycleEventInput"
+        inputs_ami_patch:
+          type: object
+          description: |
+            The name of the lifecycle event that is in progress. 
+
+            For an AMI patch operation the possible events are:
+            * PATCH_AMI
+            * SMOKE_TESTS_AMI_CREATE_AMI_PATCH
+            * VULNERABILITY_SCANS_AMI_PATCH
+          properties:
+            events:
+              type: array
+              description: |
+                Key value objects representing request properties.
+              items:
+                $ref: "#/components/schemas/LifecycleEventInput"
+        event_in_progress:
+          $ref: "#/components/schemas/LifecycleEventInProgress"
+        outputs_ami_creation:
+            type: array
+            description: |
+              The results of lifecycle event processing for AMI creation. Including relevant property items for each specific event.
+            items:
+              $ref: "#/components/schemas/LifecycleResultOutput"
+        outputs_ami_patch:
+            type: object
+            properties:
+              patch_history:
+                type: object
+                properties:
+                  current:
+                    $ref: "#/components/schemas/LifecycleResultOutput"
+                  historical:
+                    type: array
+                    description: |
+                      The results of hsitorical patch operation lifecycle events including relevant property items for each specific event.
+                    items:
+                      $ref: "#/components/schemas/LifecycleResultOutput"
+    LifecycleEventInProgress:
+      type: object
+      properties:
+        name:
+          type: string
+          description: |
+            The name of the lifecycle event that is in progress. 
+            
+            For an AMI creation operation the possible events are:
+            * BUILD_AMI
+            * SMOKE_TESTS_AMI_CREATE_AMI_CREATE
+            * VULNERABILITY_SCANS_AMI_CREATE
+            * QA_CERTIFICATION_REQUEST
+
+            For an AMI patch operation the possible events are:
+            * PATCH_AMI
+            * SMOKE_TESTS_AMI_CREATE_AMI_PATCH
+            * VULNERABILITY_SCANS_AMI_PATCH
+        description:
+          type: string
+          description: |
+            A description of the lifecycle event.
+        statemachine_arn:
+          type: string
+          description: |
+            The arn of the state machine executing the lifecycle operation.
+        statemachine_input:
+          type: string
+          description: |
+            The input passed to start the state machine.
+        execution_arn:
+          type: string
+          description: |
+            The execution arn of the state machine executing the lifecycle operation.
+        execution_startdate:
+          type: string
+          description: |
+            The start date of the lifecycle operation execution.
+        properties:
+          type: array
+          items:
+            $ref: "#/components/schemas/KeyValueObj"
+    LifecycleQACertificationRequest:
+      type: object
+      properties:
+        lifecycle_id:
+          type: string
+          description: |
+            The unique identifier used to trace the AMI lifecycle events in subsequent API calls.
+        stack_tag:
+          type: string
+          description: |
+            The stack tag of the feature branch.
+        api_key:
+          type: string
+          description: |
+            API security key which is stored in AWS Secrets Manager and is specific to each API endpoint and deployment.
+        certification_status:
+          type: string
+          description: |
+            The AMI certification status. Possible AMI certification statuses are:
+            * CERTIFIED
+            * FAILED
+        properties:
+          type: array
+          items:
+            $ref: "#/components/schemas/KeyValueObj"
+    LifecycleMarkForProductionApprovalRequest:
+      type: object
+      properties:
+        lifecycle_id:
+          type: string
+          description: |
+            The unique identifier used to trace the AMI lifecycle events in subsequent API calls.
+        stack_tag:
+          type: string
+          description: |
+            The stack tag of the feature branch.
+        api_key:
+          type: string
+          description: |
+            API security key which is stored in AWS Secrets Manager and is specific to each API endpoint and deployment.
+        approval_status:
+          type: string
+          description: |
+            The AMI production approval status. Possible AMI certification statuses are:
+            * APPROVED
+            * NOT_APPROVED
+        properties:
+          type: array
+          items:
+            $ref: "#/components/schemas/KeyValueObj"
+    LifecycleCreatePatchRequest:
+      type: object
+      properties:
+        api_key:
+          type: string
+          description: |
+            API security key which is stored in AWS Secrets Manager and is specific to each API endpoint and deployment.
+        lifecycle_id:
+          type: string
+          description: |
+              The unique identifier used to trace the AMI lifecycle events in subsequent API calls.
+        stack_tag:
+          type: string
+          description: |
+            The stack tag of the feature branch.
+        patch_component_url:
+          type: string
+          description: |
+            Absolute path to a YAML file that conforms to the [EC2 Image Builder component format](https://docs.aws.amazon.com/imagebuilder/latest/userguide/create-components-cli.html). See cdk/l3_constructs/ami/amiLifecycle/resources/lambda/ami_lifeycle/app/ami_patch/samples/sample_component.yaml for a simple example of a valid YAML component.
+        patch_change_description: 
+          type: string
+          description: |
+            Textual description of the contents and reason for the patch.
+        semver_bump_type:
+          type: string
+          description: |
+            Indicates the *MINOR* or *PATCH* bump type that a patch should increment the AMI semantic version.
+        commit_ref:
+          type: string
+          description: |
+            The Git SHA1 hash representing the specific commit from which the AMI is created.
+        owner:
+          type: string
+          description: |
+            The username or identifier of the person or process invoking the API.
+        notifications:
+          type: array
+          description: |
+            Defines the notification channels used by the Orchestrator API to communicate lifecycle event statuses. The backing resource is AWS SNS so the available notification channels are those supported by SNS. Currently `email`and `HTTP` are implemented. Multiple email subscribers can be defined using a comma separated notation.
+          items:
+            $ref: "#/components/schemas/LifecycleNotification"
+        events:
+          type: array
+          description: |
+            The lifecycle events that can be defined for an AMI Patch lifecycle. The lifecycle events and their sequence ordering are:
+            1. PATCH_AMI -> this must be disabled during an update.
+            2. SMOKE_TESTS_AMI_PATCH
+            3. VULNERABILITY_SCANS_AMI_PATCH
+          items:
+            $ref: "#/components/schemas/LifecycleEventInput"
+        properties:
+          type: array
+          description: |
+            Key value objects representing request properties.
+          items:
+            $ref: "#/components/schemas/KeyValueObj"    
+    LifecyclePatchUpdateRequest:
+      type: object
+      properties:
+        api_key:
+          type: string
+          description: |
+            API security key which is stored in AWS Secrets Manager and is specific to each API endpoint and deployment.
+        lifecycle_id:
+          type: string
+          description: |
+              The unique identifier used to trace the AMI lifecycle events in subsequent API calls.
+        stack_tag:
+          type: string
+          description: |
+            The stack tag of the feature branch.
+        owner:
+          type: string
+          description: |
+            The username or identifier of the person or process invoking the API.
+        notifications:
+          type: array
+          description: |
+            Defines the notification channels used by the Orchestrator API to communicate lifecycle event statuses. The backing resource is AWS SNS so the available notification channels are those supported by SNS. Currently `email`and `HTTP` are implemented. Multiple email subscribers can be defined using a comma separated notation.
+          items:
+            $ref: "#/components/schemas/LifecycleNotification"
+        events:
+          type: array
+          description: |
+            The lifecycle events that can be defined for an AMI Patch lifecycle. The lifecycle events and their sequence ordering are:
+            1. PATCH_AMI -> this must be disabled during an update.
+            2. SMOKE_TESTS_AMI_PATCH
+            3. VULNERABILITY_SCANS_AMI_PATCH
+          items:
+            $ref: "#/components/schemas/LifecycleEventInputPatch"
+        properties:
+          type: array
+          description: |
+            Key value objects representing request properties.
+          items:
+            $ref: "#/components/schemas/KeyValueObj"

@@ -1,0 +1,21 @@
+ERROR in AMI Lifecycle {{vars['properties']['task']}} event for branch: {{vars['properties']['stack_tag']}}
+
+The lifecyle id for this request is: {{vars['properties']['lifecycle_id']}}
+
+This error has occured in a State Machine. Check the status of the AMI Lifecycle (using the lifecycle_id referenced above) to determine the specific State Machine execution that is generating the error.
+
+The specific error message is referenced below:
+
+------------------------------------------------------------
+
+{{vars['properties']['error']}}
+
+------------------------------------------------------------
+
+The content of the error notification is provided below (in YAML format):
+
+------------------------------------------------------------
+
+{{vars['formatted_output']}}
+
+------------------------------------------------------------

@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>AMI Creation Timeline - {{vars['lifecycle_id']}}</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+        <meta http-equiv="refresh" content="20">
+
+        <!-- Bootstrap CSS -->
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css"/>
+        
+        <style>
+        h4 {
+          font-size: 25px;
+          text-decoration: underline;
+        }
+        h5 {
+          font-size: 20px;
+        }
+        .timeline {
+        list-style: none;
+        padding: 20px 0 20px;
+        position: relative;
+        }
+        .timeline:before {
+        top: 0;
+        bottom: 0;
+        position: absolute;
+        content: " ";
+        width: 7px;
+        background-color: #05aa44;
+        left: 50%;
+        margin-left: -1.5px;
+        }
+        .timeline > li {
+        margin-bottom: 20px;
+        position: relative;
+        }
+        .timeline > li:before,
+        .timeline > li:after {
+        content: " ";
+        display: table;
+        }
+        .timeline > li:after {
+        clear: both;
+        }
+        .timeline > li:before,
+        .timeline > li:after {
+        content: " ";
+        display: table;
+        }
+        .timeline > li:after {
+        clear: both;
+        }
+        .timeline > li > .timeline-panel {
+        width: 46%;
+        float: left;
+        border: 1px solid #d4d4d4;
+        border-radius: 2px;
+        padding: 10px;
+        position: relative;
+        -webkit-box-shadow: 0 1px 6px rgba(0, 0, 0, 0.175);
+        box-shadow: 0 1px 6px rgba(0, 0, 0, 0.175);
+        }
+        .timeline > li > .timeline-panel:before {
+        position: absolute;
+        top: 26px;
+        right: -15px;
+        display: inline-block;
+        border-top: 15px solid transparent;
+        border-left: 15px solid #ccc;
+        border-right: 0 solid #ccc;
+        border-bottom: 15px solid transparent;
+        content: " ";
+        }
+        .timeline > li > .timeline-panel:after {
+        position: absolute;
+        top: 27px;
+        right: -14px;
+        display: inline-block;
+        border-top: 14px solid transparent;
+        border-left: 14px solid #6e6e6e;
+        border-right: 0 solid #6e6e6e;
+        border-bottom: 14px solid transparent;
+        content: " ";
+        }
+        .timeline > li > .timeline-badge {
+        color: #fff;
+        width: 70px;
+        height: 70px;
+        line-height: 70px;
+        font-size: 1.8em;
+        text-align: center;
+        position: absolute;
+        top: 16px;
+        left: 50%;
+        margin-left: -33px;
+        background-color: #999999;
+        z-index: 100;
+        border-top-right-radius: 50%;
+        border-top-left-radius: 50%;
+        border-bottom-right-radius: 50%;
+        border-bottom-left-radius: 50%;
+        }
+        .timeline > li.timeline-inverted > .timeline-panel {
+        float: right;
+        }
+        .timeline > li.timeline-inverted > .timeline-panel:before {
+        border-left-width: 0;
+        border-right-width: 15px;
+        left: -15px;
+        right: auto;
+        }
+        .timeline > li.timeline-inverted > .timeline-panel:after {
+        border-left-width: 0;
+        border-right-width: 14px;
+        left: -14px;
+        right: auto;
+        }
+        .timeline-badge.ami-build {
+        background-color: #77befd !important;
+        }
+        .timeline-badge.smoke-tests {
+        background-color: #cc6123 !important;
+        }
+        .timeline-badge.vulnerability-scans {
+        background-color: #cc23b0 !important;
+        }
+        .timeline-badge.qa-certification-request {
+        background-color: #c9cc23 !important;
+        }
+        .timeline-badge.qa-certification-response {
+        background-color: #cc235b !important;
+        }
+        .timeline-badge.approve-production {
+        background-color: #23cc48 !important;
+        }
+        .timeline-title {
+        margin-top: 0;
+        color: inherit;
+        }
+        .timeline-body > p,
+        .timeline-body > ul {
+        margin-bottom: 0;
+        }
+        .timeline-body > p + p {
+        margin-top: 5px;
+        }
+        .timeline-body > div > p {
+        font-size: 18px;
+        }
+        </style>
+    </head>
+    <body>
+        <div class="container-fluid">
+            <div class="page-header">
+                <h1 id="timeline">AMI Creation Timeline - {{vars['lifecycle_id']}}</h1>
+                <table class="table table-bordered table-hover table-responsive">
+                  <thead>
+                    <tr>
+                      <th>Attribute</th>
+                      <th>Value</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>Lifecycle Id</td>
+                      <td>{{vars['lifecycle_id']}}</td>
+                    </tr>
+                    <tr>
+                      <td>Stack Tag</td>
+                      <td>{{vars['stack_tag']}}</td>
+                    </tr>
+                    <tr>
+                      <td>Last Completed Event</td>
+                      <td>{{vars['current_completed_event']}}</td>
+                    </tr>
+                    <tr>
+                      <td>Event In Progress</td>
+                      <td>{{vars['current_event_in_progress']}}</td>
+                    </tr>
+                    <tr>
+                      <td>Product Name</td>
+                      <td>{{vars['product_name']}}</td>
+                    </tr>
+                    <tr>
+                      <td>Product Version</td>
+                      <td>{{vars['product_ver']}}</td>
+                    </tr>
+                    <tr>
+                      <td>SHA1 Commit Ref</td>
+                      <td>{{vars['commit_ref']}}</td>
+                    </tr>
+                    <tr>
+                      <td>Lifecycle Ami Semantic Version</td>
+                      <td>{{vars['lifecycle_ami_semver']}}</td>
+                    </tr>
+                    <tr>
+                      <td>Stack Tag Ami Semantic Version</td>
+                      <td>{{vars['stack_tag_ami_semver']}}</td>
+                    </tr>
+                  </tbody>
+                </table>
+            </div>
+            <ul class="timeline">
+                <li>
+                  <div class="timeline-badge ami-build"><i class="fa-solid fa-screwdriver-wrench" title="AMI Build Event"></i></div>
+                  <div class="timeline-panel" style="background-color: #d4ebff; border: 3px solid #77befd;">
+                    <div class="timeline-heading">
+                      <h4 class="timeline-title">{{vars['ami_build']['title']}}</h4>
+                    </div>
+                    <div class="timeline-body">
+                      {{vars['ami_build']['description']}}
+                    </div>
+                  </div>
+                </li>
+                <li class="timeline-inverted">
+                  <div class="timeline-badge smoke-tests"><i class="fa-solid fa-smog" title="AMI Smoke Tests Event"></i></div>
+                  <div class="timeline-panel" style="background-color: #ffdfcc; border: 3px solid #cc6123;">
+                    <div class="timeline-heading">
+                      <h4 class="timeline-title">{{vars['smoke_tests']['title']}}</h4>
+                    </div>
+                    <div class="timeline-body">
+                      {{vars['smoke_tests']['description']}}
+                    </div>
+                  </div>
+                </li>
+                <li>
+                  <div class="timeline-badge vulnerability-scans"><i class="fa-solid fa-shield-virus" title="AMI Vulnerability Scan Event"></i></div>
+                  <div class="timeline-panel" style="background-color: #ffccee; border: 3px solid #cc23b0;">
+                    <div class="timeline-heading">
+                      <h4 class="timeline-title">{{vars['vulnerability_scans']['title']}}</h4>
+                    </div>
+                    <div class="timeline-body">
+                      {{vars['vulnerability_scans']['description']}}
+                    </div>
+                  </div>
+                </li>
+                <li class="timeline-inverted">
+                    <div class="timeline-badge qa-certification-request"><i class="fa-solid fa-star-half-stroke" title="Request QA Certification for AMI Event"></i></div>
+                  <div class="timeline-panel" style="background-color: #fffecc; border: 3px solid #c9cc23;">
+                    <div class="timeline-heading">
+                      <h4 class="timeline-title">{{vars['qa_certification_request']['title']}}</h4>
+                    </div>
+                    <div class="timeline-body">
+                      {{vars['qa_certification_request']['description']}}
+                    </div>
+                  </div>
+                </li>
+                <li>
+                  <div class="timeline-badge qa-certification-response"><i class="fa-solid fa-star" title="Receive QA Certification for AMI Response Event"></i></div>
+                  <div class="timeline-panel" style="background-color: #ffccdb; border: 3px solid #cc235b;">
+                    <div class="timeline-heading">
+                      <h4 class="timeline-title">{{vars['qa_certification_response']['title']}}</h4>
+                    </div>
+                    <div class="timeline-body">
+                      {{vars['qa_certification_response']['description']}}
+                    </div>
+                  </div>
+                </li>
+                <li class="timeline-inverted">
+                  <div class="timeline-badge approve-production"><i class="fa-solid fa-rocket" title="Approve AMI for Production Event"></i></div>
+                  <div class="timeline-panel" style="background-color: #ceffcc; border: 3px solid #23cc48;">
+                    <div class="timeline-heading">
+                      <h4 class="timeline-title">{{vars['mark_for_production']['title']}}</h4>
+                    </div>
+                    <div class="timeline-body">
+                      {{vars['mark_for_production']['description']}}
+                    </div>
+                  </div>
+                </li>
+            </ul>
+        </div>
+        <!-- Optional JavaScript -->
+        <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+        <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+        <script src="https://cdn.jsdelivr.net/npm/popper.js@1.12.9/dist/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+    </body>
+</html>

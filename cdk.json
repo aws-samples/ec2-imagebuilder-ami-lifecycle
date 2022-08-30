@@ -1,0 +1,100 @@
+{
+  "app": "python3 app.py",
+  "context": {
+    "@aws-cdk/core:newStyleStackSynthesis": "true",
+    "@aws-cdk/aws-apigateway:usagePlanKeyOrderInsensitiveId": true,
+    "@aws-cdk/core:enableStackNameDuplicates": "true",
+    "aws-cdk:enableDiffNoFail": "true",
+    "@aws-cdk/core:stackRelativeExports": "true",
+    "@aws-cdk/aws-ecr-assets:dockerIgnoreSupport": true,
+    "@aws-cdk/aws-secretsmanager:parseOwnedSecretName": true,
+    "@aws-cdk/aws-kms:defaultKeyPolicies": true,
+    "@aws-cdk/aws-s3:grantWriteWithoutAcl": true,
+    "@aws-cdk/aws-ecs-patterns:removeDefaultDesiredCount": true,
+    "@aws-cdk/aws-rds:lowercaseDbIdentifier": true,
+    "@aws-cdk/aws-efs:defaultEncryptionAtRest": true,
+    "@aws-cdk/aws-lambda:recognizeVersionProps": true,
+    "@aws-cdk/aws-cloudfront:defaultSecurityPolicyTLSv1.2_2021": true
+  },
+  "projectSettings": {
+    "vpc": {
+      "cidr": "192.168.0.0/16",
+      "subnets": {
+        "mask": 22
+      }
+    },
+    "ssm": {
+      "projectPrefix": "ami-lifecycle"
+    },
+    "imageBuilder": {
+      "baseImageArn": "amazon-linux-2-kernel-5-x86/2022.2.24",
+      "ebsVolumeSize": 8,
+      "instanceTypes": [
+        "t2.medium"
+      ],
+      "recipe_version": "1.0.0",
+      "component_version": "1.0.0",
+      "imageBuilderEmailAddress": "email@domian.com",
+      "extraTags": {
+        "imagePipeline": "AMIBuilder"
+      }
+    },
+    "amiLifecycle": {
+      "cfnStackNameImageBuilder": "AmiLifecycleImageBuilder",
+      "cfnStackNameAmiLifecycle": "AmiLifecycle",
+      "amiTagger": {
+        "taggerRole": "amiLifecycleImageTaggerRole"
+      },
+      "api": {
+        "apiName": "ami-lifecycle-api",
+        "apiStageName": "dev",
+        "throttlingBurstLimit": 500,
+        "throttlingRateLimit":100,
+        "security": {
+          "api_keys": {
+            "internal": {
+              "ami_creation_post_secret_name": "ami_creation_post_api_key",
+              "ami_creation_put_secret_name": "ami_creation_put_api_key",
+              "ami_creation_status_secret_name": "ami_creation_status_api_key",
+              "ami_creation_timeline_secret_name": "ami_creation_timeline_api_key",
+              "ami_creation_receiver_secret_name": "ami_creation_recevier_api_key",
+              "ami_patch_receiver_secret_name": "ami_patch_recevier_api_key",
+              "ami_error_receiver_secret_name": "ami_error_recevier_api_key",
+              "ami_patch_post_secret_name": "ami_patch_post_api_key",
+              "ami_patch_put_secret_name": "ami_patch_put_api_key",
+              "ami_patch_timeline_secret_name": "ami_patch_timeline_api_key"
+            },
+            "external": {
+              "ami_creation_qa_certification_secret_name": "ami_creation_qa_certification_key",
+              "ami_creation_mark_for_production_secret_name": "ami_creation_mark_for_production_key",
+              "ami_patch_mark_for_production_secret_name": "ami_patch_mark_for_production_key"
+            }
+          }
+        }
+      },
+      "notificationTopicArnExportName": "ami-lc-orchestrator-snstopic-arn",
+      "stateMachineMaxWaitTime": 240,
+      "awsPrincipalMain": "arn:aws:iam::${account_id}:root",
+      "defaultAmiSemverSeed": "1.0.0",
+      "dbToTagReconcilerCronExpr": "cron(0 0/3 * * ? *)",
+      "cfnStackPrefixManager": "AmiLifecycle",
+      "qaNotificationEmailAddress": "qa_team@domain.com",
+      "amiCreationReceiverTimeout": 30,
+      "amiPatchReceiverTimeout": 30,
+      "ec2GarbageCollectorRateMins": 20,
+      "lifecycleInstanceMaxRuntimeHours": "3",
+      "ec2TestInstanceLogsShipDelay": 1,
+      "exportLinkExpiry": 604800,
+      "stateMachines": {
+        "amiBuildEventStateMachineTimeoutMins": 180,
+        "smokeTestEventStateMachineTimeoutMins": 180,
+        "smokeTestEventStateMachineSqsTimeoutMins": 120,
+        "vulnerabilityScansEventStateMachineTimeoutMins": 240,
+        "vulnerabilityScansEventStateMachineSqsTimeoutMins": 210,
+        "qaCertificationEventStateMachineTimeoutMins": 180,
+        "amiPatchEventStateMachineTimeoutMins": 180,
+        "markForProductionEventStateMachineTimeoutMins": 180
+      }
+    }
+  }
+}

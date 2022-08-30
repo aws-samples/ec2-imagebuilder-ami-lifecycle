@@ -1,0 +1,9 @@
+ERROR in {{vars['operator']}} for deployment {{vars['stack_tag']}}.
+
+The specific error message is referenced below:
+
+------------------------------------------------------------
+
+{{vars['error']}}
+
+------------------------------------------------------------
