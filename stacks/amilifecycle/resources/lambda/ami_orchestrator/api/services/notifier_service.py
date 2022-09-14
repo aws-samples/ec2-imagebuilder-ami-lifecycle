@@ -37,8 +37,13 @@ class NotifierService:
 
     TEMPLATE_DIR = dirname(dirname(abspath(__file__)))
     TEMPLATE_LOADER = jinja2.FileSystemLoader(searchpath=f"{TEMPLATE_DIR}/templates")
-    TEMPLATE_ENV = jinja2.Environment(loader=TEMPLATE_LOADER)
-
+    TEMPLATE_ENV = jinja2.Environment(
+        loader=TEMPLATE_LOADER,
+        autoescape=jinja2.select_autoescape(
+            default_for_string=True,
+            default=True
+        )
+    )
 
     def _list_subscription(self, endpoint) -> str:
         response = self.client.list_subscriptions_by_topic(

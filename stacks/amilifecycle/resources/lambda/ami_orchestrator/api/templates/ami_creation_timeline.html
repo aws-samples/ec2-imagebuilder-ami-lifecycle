@@ -212,7 +212,7 @@
                       <h4 class="timeline-title">{{vars['ami_build']['title']}}</h4>
                     </div>
                     <div class="timeline-body">
-                      {{vars['ami_build']['description']}}
+                      {{vars['ami_build']['description']|safe}}
                     </div>
                   </div>
                 </li>
@@ -223,7 +223,7 @@
                       <h4 class="timeline-title">{{vars['smoke_tests']['title']}}</h4>
                     </div>
                     <div class="timeline-body">
-                      {{vars['smoke_tests']['description']}}
+                      {{vars['smoke_tests']['description']|safe}}
                     </div>
                   </div>
                 </li>
@@ -234,7 +234,7 @@
                       <h4 class="timeline-title">{{vars['vulnerability_scans']['title']}}</h4>
                     </div>
                     <div class="timeline-body">
-                      {{vars['vulnerability_scans']['description']}}
+                      {{vars['vulnerability_scans']['description']|safe}}
                     </div>
                   </div>
                 </li>
@@ -245,7 +245,7 @@
                       <h4 class="timeline-title">{{vars['qa_certification_request']['title']}}</h4>
                     </div>
                     <div class="timeline-body">
-                      {{vars['qa_certification_request']['description']}}
+                      {{vars['qa_certification_request']['description']|safe}}
                     </div>
                   </div>
                 </li>
@@ -256,7 +256,7 @@
                       <h4 class="timeline-title">{{vars['qa_certification_response']['title']}}</h4>
                     </div>
                     <div class="timeline-body">
-                      {{vars['qa_certification_response']['description']}}
+                      {{vars['qa_certification_response']['description']|safe}}
                     </div>
                   </div>
                 </li>
@@ -267,7 +267,7 @@
                       <h4 class="timeline-title">{{vars['mark_for_production']['title']}}</h4>
                     </div>
                     <div class="timeline-body">
-                      {{vars['mark_for_production']['description']}}
+                      {{vars['mark_for_production']['description']|safe}}
                     </div>
                   </div>
                 </li>

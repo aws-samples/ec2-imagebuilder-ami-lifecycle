@@ -34,7 +34,13 @@ class ErrorNotifierService:
 
     TEMPLATE_DIR = dirname(dirname(abspath(__file__)))
     TEMPLATE_LOADER = jinja2.FileSystemLoader(searchpath=f"{TEMPLATE_DIR}/templates")
-    TEMPLATE_ENV = jinja2.Environment(loader=TEMPLATE_LOADER)
+    TEMPLATE_ENV = jinja2.Environment(
+        loader=TEMPLATE_LOADER,
+        autoescape=jinja2.select_autoescape(
+            default_for_string=True,
+            default=True
+        )
+    )
 
 
     def __send_email_notification(self, subject, template_name, template_attributes) -> None:

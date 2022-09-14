@@ -38,13 +38,19 @@ constants_service = ConstantsService()
 
 OPERATOR = "AMI_LIFECYCLE_TIMELINE_BY_LIFECYCLE_ID"
 ERROR_TEMPLATE_FILE = "lifecycle_event_notification_error.template"
-TIMELINE_TEMPLATE_FILE = "ami_creation_timeline.template"
+TIMELINE_TEMPLATE_FILE = "ami_creation_timeline.html"
 TEMPLATE_LOADER = jinja2.FileSystemLoader(
     searchpath=os.path.join(
         os.path.dirname(__file__), 'templates'
     )
 )
-TEMPLATE_ENV = jinja2.Environment(loader=TEMPLATE_LOADER)
+TEMPLATE_ENV = jinja2.Environment(
+    loader=TEMPLATE_LOADER,
+    autoescape=jinja2.select_autoescape(
+        default_for_string=True,
+        default=True
+    )
+)
 HTML_TABLE_CLASS = "class=\"table table-bordered table-hover table-responsive\""
 EVENT_IN_PROGRESS = "EVENT_IN_PROGRESS"
 EVENT_IN_PROGRESS_WITH_ERROR = "EVENT_IN_PROGRESS_WITH_ERROR"
