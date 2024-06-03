@@ -143,7 +143,7 @@ tabulate==0.8.10
 termcolor==1.1.0
 toml==0.10.2
 tomli==2.0.1
-tqdm==4.64.0
+tqdm==4.66.3
 typeguard==2.13.3
 typing_extensions==4.3.0
 update-checker==0.18.0
